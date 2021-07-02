@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>江汉平原经济发展过程|201822110810058章紫曦</title>
+  <style>
+    html,
+    body,
+    #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+
+    #infoDiv{
+      margin-left: 50px;
+      margin-top: -75px;
+    }
+
+    #optionsDiv {
+      background-color: dimgray;
+      color: white;
+      padding: 10px;
+      width: 350px;
+    }
+
+    .esri-popup .esri-popup-header .esri-title {
+      font-size: 18px;
+      font-weight: bolder;
+    }
+
+    .esri-popup .esri-popup-body .esri-popup-content {
+      font-size: 14px;
+    }
+  </style>
+  <link
+          rel="stylesheet"
+          href="https://js.arcgis.com/4.20/esri/themes/light/main.css"
+  />
+  <script src="https://js.arcgis.com/4.20/"></script>
+</head>
+<body>
+<div id="viewDiv"></div>
+<div id="infoDiv" class="esri-widget">
+  Select Field:
+  <select id="field-select" class="esri-widget">
+    <option value="F2015第">2015年第一产业</option>
+    <option value="F2015第_1" selected>2015年第二产业</option>
+    <option value="F2015第_2">2015年第三产业</option>
+    <option value="F2016第_2">2016年第一产业</option>
+    <option value="F2016第_2">2016年第二产业</option>
+    <option value="F2016第">2016年第三产业</option>
+    <option value="F2017第_1">2017年第一产业</option>
+    <option value="F2017第_2">2017年第二产业</option>
+    <option value="F2017第">2017年第三产业</option>
+    <option value="F2018第">2018年第一产业</option>
+    <option value="F2018第_1">2018年第二产业</option>
+    <option value="F2018第_2">2018年第三产业</option>
+    <option value="F2019第">2019年第一产业</option>
+    <option value="F2019第_1">2019年第二产业</option>
+    <option value="F2019第_2">2019年第三产业</option>
+  </select>
+  Classification:
+  <select id="class-select" class="esri-widget">
+    <option value="equal-interval" selected>Equal interval</option>
+    <option value="quantile">Quantile</option>
+    <option value="natural-breaks">Natual Breaks</option>
+    <option value="manual">Manual</option>
+  </select>
+  Breaks:
+  <input type="number" id="num-classes" class="esri-widget" value="5" min="2" max="10" />
+</div>
+<div class="esri-widget" id="optionsDiv">
+  <h2>产业值符合查询</h2>
+  <select class="esri-widget" id="attSelect">
+    <option value="F2015第">2015年第一产业</option>
+    <option value="F2015第_1" selected>2015年第二产业</option>
+    <option value="F2015第_2">2015年第三产业</option>
+    <option value="F2016第_2">2016年第一产业</option>
+    <option value="F2016第_2">2016年第二产业</option>
+    <option value="F2016第">2016年第三产业</option>
+    <option value="F2017第_1">2017年第一产业</option>
+    <option value="F2017第_2">2017年第二产业</option>
+    <option value="F2017第">2017年第三产业</option>
+    <option value="F2018第">2018年第一产业</option>
+    <option value="F2018第_1">2018年第二产业</option>
+    <option value="F2018第_2">2018年第三产业</option>
+    <option value="F2019第">2019年第一产业</option>
+    <option value="F2019第_1">2019年第二产业</option>
+    <option value="F2019第_2">2019年第三产业</option>
+  </select>
+  <select class="esri-widget" id="signSelect">
+    <option value=">">is greater than</option>
+    <option value="<">is less than</option>
+    <option value="=">is equal to</option>
+  </select>
+  <select class="esri-widget" id="valSelect">
+    <option value="0">0</option>
+    <option value="10">10</option>
+    <option value="20">20</option>
+    <option value="30">30</option>
+    <option value="40">40</option>
+    <option value="50">50</option>
+    <option value="60">60</option>
+  </select>
+  <br />
+  <br />
+  <button class="esri-widget" id="doBtn">Do Query</button> <br />
+  <p><span id="printResults"></span></p>
+</div>
+<script>
+
+  require([
+            "esri/config",
+            "esri/Map",
+            "esri/Graphic",
+            "esri/views/MapView",
+            "esri/geometry/geometryEngine",
+            "esri/core/watchUtils",
+            "esri/tasks/QueryTask",
+            "esri/rest/support/Query",
+            "esri/smartMapping/renderers/color",
+            "esri/smartMapping/statistics/histogram",
+            "esri/widgets/smartMapping/ClassedColorSlider",
+            "esri/layers/GeoJSONLayer",
+            "esri/layers/GraphicsLayer",
+            "esri/widgets/Locate",
+            "esri/layers/FeatureLayer",
+            "esri/layers/TileLayer",
+            "esri/widgets/BasemapToggle",
+            "esri/widgets/BasemapGallery",
+            "esri/widgets/BasemapLayerList",
+            "esri/widgets/Expand",
+            "esri/widgets/Swipe",
+            "esri/widgets/ScaleBar",
+            "esri/widgets/Legend",
+            "esri/widgets/LayerList"
+          ],
+          function (esriConfig, Map, Graphic,MapView,geometryEngine, watchUtils, QueryTask, Query,colorRendererCreator, histogram, ClassedColorSlider,GeoJSONLayer,GraphicsLayer, Locate, FeatureLayer, TileLayer,BasemapToggle, BasemapGallery, BasemapLayerList, Expand, Swipe, ScaleBar, Legend, LayerList) {
+            esriConfig.apiKey = "AAPK56e3ac027f044c4089d8ceec232fc05dYaOuzVRzm8tMRqvzOvDvIEevbqJ85yppn9PacU6cy4duurJrVK9wo_8BcWO8i8bi";
+
+            //map
+            const map = new Map({
+              basemap: "arcgis-navigation"
+            })
+            //view
+            const view = new MapView({
+              map: map,
+              center: [114.298572, 30.584355],
+              zoom: 7,
+              container: "viewDiv"
+            })
+
+
+            // LayerList
+            const layerList = new LayerList({
+              view: view,
+              listItemCreatedFunction: function(event) {
+                const item = event.item;
+                if (item.layer.type != "group") {
+                  // don't show legend twice
+                  item.panel = {
+                    content: "legend",
+                    open: true
+                  };
+                }
+              }
+            });
+            view.ui.add(layerList, {
+              position: "top-right"
+            })
+
+
+            //basemapGallery
+            let basemapGallery = new BasemapGallery({
+              view: view,
+            });
+
+            let basemapGalleryExpand = new Expand({
+              view: view,
+              content: basemapGallery,
+              expandIconClass: "esri-icon-collection"
+            });
+            view.ui.add(basemapGalleryExpand, "bottom-left");
+
+
+            var popupTemplate = {
+              title: "湖北省{Name}",
+              content: [
+                {
+                  type: "fields", // FieldsContentElement
+                  fieldInfos: [
+                    {
+                      fieldName: "F2015第",
+                      label: "2015年第一产业",
+                    },
+                    {
+                      fieldName: "F2015第_1",
+                      label: "2015年第二产业",
+                      format: {
+                        places: 0,
+                        digitSeperator: true
+                      }
+                    },
+                    {
+                      fieldName: "F2015第_2",
+                      label: "2015年第三产业",
+                      format: {
+                        places: 0,
+                        digitSeperator: true
+                      }
+                    }
+                  ],
+
+                },
+                {
+                  type: "media", // MediaContentElement
+                  mediaInfos: [
+                    {
+                      title: "<b>2015</b>",
+                      type: "pie-chart",
+                      caption: "chan",
+                      value: {
+                        fields: ["F2015第","F2015第_1","F2015第_2"],
+                        normalizeField: null,
+                      }
+                    }
+
+                  ]
+                },
+              ]
+            }
+
+            const industyLayer = new FeatureLayer({
+              url: "https://services3.arcgis.com/U26uBjSD32d7xvm2/ArcGIS/rest/services/industry/FeatureServer/0",
+              popupTemplate: popupTemplate,
+              opacity: "0.9",
+              displayField: 'NAME'
+              // blendMode: "difference"
+            });
+
+            const tileLayer = new TileLayer({
+              url: "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer"
+            })
+
+            map.add(tileLayer)
+            map.add(industyLayer);
+
+            //swipe
+            let swipe = new Swipe({
+              view: view,
+              leadingLayers: [tileLayer],
+              trailingLayers: [],
+              direction: "horizontal",
+              position: 0,
+            });
+            view.ui.add(swipe);
+
+            //ScaleBar
+            let scaleBar = new ScaleBar({
+              view: view,
+              unit: "dual"
+            });
+            view.ui.add(scaleBar, {
+              position: "bottom-right"
+            });
+
+
+            let fieldSelect, classSelect, numClassesInput, slider;
+            const basemapToggle = new BasemapToggle({
+              view: view,
+              nextBasemap: "national-geographic"
+            });
+            view.ui.add(basemapToggle, "bottom-right");
+            basemapToggle.on("toggle", generateRenderer);
+
+            view.ui.add("infoDiv", "top-left");
+
+            // Generate a new renderer each time the user changes an input parameter
+            view.when().then(function() {
+              fieldSelect = document.getElementById("field-select");
+              fieldSelect.addEventListener("change", generateRenderer);
+
+              classSelect = document.getElementById("class-select");
+              classSelect.addEventListener("change", generateRenderer);
+
+              numClassesInput = document.getElementById("num-classes");
+              numClassesInput.addEventListener("change", generateRenderer);
+
+              watchUtils.whenFalseOnce(view, "updating", generateRenderer);
+            });
+
+            // Generate rounded arcade expression when user
+            // selects a field name
+
+
+            function generateRenderer() {
+              const fieldLabel = fieldSelect.options[fieldSelect.selectedIndex].text;
+              // default to natural-breaks when manual is selected for classification method
+              const classificationMethod = classSelect.value === "manual" ? "natural-breaks" : classSelect.value;
+
+              const params = {
+                layer: industyLayer,
+                field: fieldSelect.value,
+                view: view,
+                classificationMethod: classificationMethod,
+                numClasses: parseInt(numClassesInput.value),
+                legendOptions: {
+                  title: fieldLabel
+                }
+              };
+
+              // generate the renderer and set it on the layer
+              colorRendererCreator.createClassBreaksRenderer(params).then(function(rendererResponse) {
+                industyLayer.renderer = rendererResponse.renderer;
+
+                if (!map.layers.includes(industyLayer)) {
+                  map.add(industyLayer);
+                }
+
+                if(classSelect.value === "manual"){
+                  // if manual is selected, then add or update
+                  // a classed color slider to allow the user to
+                  // construct manual class breaks
+                  updateColorSlider(rendererResponse);
+                } else {
+                  destroySlider();
+                }
+
+              });
+            }
+
+            // If manual classification method is selected, then create
+            // a classed color slider to allow user to manually modify
+            // the class breaks starting with the generated renderer
+
+            function updateColorSlider(rendererResult){
+
+              histogram({
+                layer: industyLayer,
+                valueExpression: getValueExpression(fieldSelect.value),
+                view: view,
+                numBins: 100
+              }).then(function(histogramResult){
+                if(!slider){
+                  const sliderContainer = document.createElement("div");
+                  const container = document.createElement("div");
+                  container.id = "containerDiv";
+                  container.appendChild(sliderContainer);
+                  view.ui.add(container, "top-right");
+
+                  slider = ClassedColorSlider.fromRendererResult(rendererResult, histogramResult);
+                  slider.container = container;
+                  slider.viewModel.precision = 1;
+
+                  function changeEventHandler () {
+                    const renderer = layer.renderer.clone();
+                    renderer.classBreakInfos = slider.updateClassBreakInfos(renderer.classBreakInfos);
+                    industyLayer.renderer = renderer;
+                  }
+
+                  slider.on(["thumb-change", "thumb-drag", "min-change", "max-change"], changeEventHandler);
+                } else {
+                  slider.updateFromRendererResult(rendererResult, histogramResult);
+                }
+              });
+
+            }
+
+            function destroySlider(){
+              if(slider){
+                let container = document.getElementById("containerDiv");
+                view.ui.remove(container);
+                slider.container = null;
+                slider = null;
+                container = null;
+              }
+            }
+
+
+
+
+            var peaksUrl = "https://services3.arcgis.com/U26uBjSD32d7xvm2/ArcGIS/rest/services/industry/FeatureServer/0";
+            var resultsLayer = new GraphicsLayer();
+            resultsLayer.title = "Query results"
+            map.add(resultsLayer);
+            /*****************************************************************
+             *  Point QueryTask to URL of feature service
+             *****************************************************************/
+            var qTask = new QueryTask({
+              url: peaksUrl
+            });
+
+            var params = new Query({
+              returnGeometry: true,
+              outFields: ["*"]
+            });
+
+
+
+            // Call doQuery() each time the button is clicked
+            view.when(function () {
+              view.ui.add("optionsDiv", "bottom-right");
+              document.getElementById("doBtn").addEventListener("click", doQuery);
+            });
+
+            var attributeName = document.getElementById("attSelect");
+            var expressionSign = document.getElementById("signSelect");
+            var value = document.getElementById("valSelect");
+
+            // Executes each time the button is clicked
+            function doQuery() {
+              // Clear the results from a previous query
+              resultsLayer.removeAll();
+
+              params.where =
+                      attributeName.value + expressionSign.value + value.value;
+              console.log(params)
+
+              // executes the query and calls getResults() once the promise is resolved
+              // promiseRejected() is called if the promise is rejected
+              qTask.execute(params).then(getResults).catch(promiseRejected);
+            }
+
+            // Called each time the promise is resolved
+            function getResults(response) {
+              console.log(response);
+              // Loop through each of the results and assign a symbol and PopupTemplate
+              // to each so they may be visualized on the map
+              var peakResults = response.features.map(function (feature) {
+                // Sets the symbol of each resulting feature to a cone with a
+                // fixed color and width. The height is based on the mountain's elevation
+                feature.symbol = {
+                  type: "simple-marker", // autocasts as new PointSymbol3D()
+                };
+
+                feature.popupTemplate = popupTemplate;
+                return feature;
+              });
+
+              resultsLayer.addMany(peakResults);
+
+              // animate to the results after they are added to the map
+              view
+                      .goTo(peakResults)
+                      .then(function () {
+                        view.popup.open({
+                          features: peakResults,
+                          featureMenuOpen: true,
+                          updateLocationEnabled: true
+                        });
+                      })
+                      .catch(function (error) {
+                        if (error.name != "AbortError") {
+                          console.error(error);
+                        }
+                      });
+
+              // print the number of results returned to the user
+              document.getElementById("printResults").innerHTML =
+                      peakResults.length + " results found!";
+            }
+
+            // Called each time the promise is rejected
+            function promiseRejected(error) {
+              console.error("Promise rejected: ", error.message);
+            }
+
+
+            let bufferGraphicLayer = new GraphicsLayer({
+              title: "buffer"
+            })
+            map.add(bufferGraphicLayer)
+            const polySym = {
+              type: "simple-fill", // autocasts as new SimpleFillSymbol()
+              color: [140, 140, 222, 0.5],
+              outline: {
+                color: [0, 0, 0, 0.5],
+                width: 2
+              }
+            };
+
+            view.when(() => {
+
+              view.on("double-click", async (event) => {
+                event.stopPropagation()
+                // remove the current measured geometry from the layer when the user clicks on the map
+                // get results only from the "Parcels" layer
+                const hitTestResult = await view.hitTest(event, {
+                  include: industyLayer
+                });
+                console.log(hitTestResult)
+                if (hitTestResult.results.length > 0) {
+                  const geometry = hitTestResult.results[0].graphic.geometry;
+                  console.log(geometry)
+                  const buffer = geometryEngine.geodesicBuffer(
+                    geometry,
+                    10,
+                    "kilometers"
+                  )
+                  // pass the polygon geometry to the areaMeasurementLayer to display a new measurement
+                  // areaMeasurementLayer.geometry = geometry;
+                  bufferGraphicLayer.add(new Graphic({geometry:buffer,symbol:polySym}))
+                  // zoom to the selected geometry
+                  view.goTo(geometry);
+                }
+              });
+            });
+
+          });
+</script>
+
+</body>
+</html>
